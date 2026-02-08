@@ -1,5 +1,21 @@
 import { useState, useEffect } from 'react'
 
+// Type declaration for Electron API
+declare global {
+  interface Window {
+    electronAPI?: {
+      platform: string
+      getVersion: () => Promise<string>
+      checkForUpdates: () => Promise<void>
+      quitAndInstall: () => Promise<void>
+      onUpdateAvailable: (callback: (info: { version: string }) => void) => void
+      onUpdateDownloaded: (callback: (info: { version: string }) => void) => void
+      onUpdateError: (callback: (error: string) => void) => void
+      onUpdateProgress: (callback: (progress: { percent: number }) => void) => void
+    }
+  }
+}
+
 function App() {
   const [decodeInput, setDecodeInput] = useState('')
   const [encodeInput, setEncodeInput] = useState('')
@@ -11,6 +27,13 @@ function App() {
   const [pastedDecode, setPastedDecode] = useState(false)
   const [pastedEncode, setPastedEncode] = useState(false)
   const [pasteError, setPasteError] = useState<string | null>(null)
+  
+  // Electron update states
+  const [updateAvailable, setUpdateAvailable] = useState(false)
+  const [updateDownloaded, setUpdateDownloaded] = useState(false)
+  const [updateVersion, setUpdateVersion] = useState('')
+  const [downloadProgress, setDownloadProgress] = useState(0)
+  const [appVersion, setAppVersion] = useState('')
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('urldeco-theme')
@@ -22,6 +45,35 @@ function App() {
   useEffect(() => {
     localStorage.setItem('urldeco-theme', isDark ? 'dark' : 'light')
   }, [isDark])
+
+  // Electron update listeners
+  useEffect(() => {
+    // Check if running in Electron
+    if (window.electronAPI) {
+      // Get app version
+      window.electronAPI.getVersion().then(setAppVersion)
+      
+      // Listen for update events
+      window.electronAPI.onUpdateAvailable((info) => {
+        setUpdateAvailable(true)
+        setUpdateVersion(info.version)
+      })
+      
+      window.electronAPI.onUpdateDownloaded((info) => {
+        setUpdateDownloaded(true)
+        setUpdateVersion(info.version)
+        setDownloadProgress(100)
+      })
+      
+      window.electronAPI.onUpdateProgress((progress) => {
+        setDownloadProgress(progress.percent)
+      })
+      
+      window.electronAPI.onUpdateError((error) => {
+        console.error('Update error:', error)
+      })
+    }
+  }, [])
 
   const handleDecode = () => {
     try {
@@ -80,6 +132,12 @@ function App() {
     }
   }
 
+  const handleRestart = () => {
+    if (window.electronAPI) {
+      window.electronAPI.quitAndInstall()
+    }
+  }
+
   return (
     <div className={`app ${isDark ? 'dark' : 'light'}`}>
       <div className="theme-toggle">
@@ -87,9 +145,34 @@ function App() {
           {isDark ? '☀️ Light' : '🌙 Dark'}
         </button>
       </div>
+      
+      {/* Update notification */}
+      {updateAvailable && !updateDownloaded && (
+        <div className="update-banner downloading">
+          <span>📦 Downloading update v{updateVersion}...</span>
+          <div className="progress-bar">
+            <div className="progress-fill" style={{ width: `${downloadProgress}%` }}></div>
+          </div>
+        </div>
+      )}
+      
+      {updateDownloaded && (
+        <div className="update-banner ready">
+          <span>✅ Update v{updateVersion} ready!</span>
+          <button onClick={handleRestart}>Restart Now</button>
+        </div>
+      )}
+      
       {pasteError && (
         <div className="paste-error">
           {pasteError}
+        </div>
+      )}
+      
+      {/* Version info */}
+      {appVersion && (
+        <div className="version-info">
+          v{appVersion}
         </div>
       )}
       
