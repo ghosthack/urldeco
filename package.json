@@ -2,6 +2,8 @@
   "name": "urldeco",
   "private": true,
   "version": "1.0.0",
+  "description": "URL encoder/decoder with dark/light theme support",
+  "author": "ghosthack",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
