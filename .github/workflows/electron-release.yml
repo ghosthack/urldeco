@@ -6,6 +6,9 @@ on:
       - 'v*'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -29,19 +32,19 @@ jobs:
 
       - name: Build and Release (macOS)
         if: matrix.os == 'macos-latest'
-        run: npm run electron:build:mac
+        run: npm run electron:build:mac -- --publish=never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and Release (Windows)
         if: matrix.os == 'windows-latest'
-        run: npm run electron:build:win
+        run: npm run electron:build:win -- --publish=never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and Release (Linux)
         if: matrix.os == 'ubuntu-latest'
-        run: npm run electron:build:linux
+        run: npm run electron:build:linux -- --publish=never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -56,6 +59,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
 
     steps:
       - name: Download all artifacts
@@ -63,6 +68,7 @@ jobs:
         with:
           path: artifacts
           pattern: electron-build-*
+          merge-multiple: true
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -70,5 +76,6 @@ jobs:
           files: artifacts/**/*
           draft: false
           prerelease: false
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
