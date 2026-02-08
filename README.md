@@ -1,4 +1,4 @@
-# 🌐 URL Deco
+# 🧰 URL Deco
 
 A simple, elegant URL encoder/decoder with dark/light theme support.
 
