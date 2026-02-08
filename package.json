@@ -47,7 +47,7 @@
     "wrangler": "^4.61.1"
   },
   "build": {
-    "appId": "com.iladriano.urldeco",
+    "appId": "com.ghosthack.urldeco",
     "productName": "URL Deco",
     "directories": {
       "output": "release",
@@ -79,7 +79,7 @@
     },
     "publish": {
       "provider": "github",
-      "owner": "iladriano",
+      "owner": "ghosthack",
       "repo": "urldeco"
     }
   }
