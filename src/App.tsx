@@ -8,10 +8,10 @@ declare global {
       getVersion: () => Promise<string>
       checkForUpdates: () => Promise<void>
       quitAndInstall: () => Promise<void>
-      onUpdateAvailable: (callback: (info: { version: string }) => void) => void
-      onUpdateDownloaded: (callback: (info: { version: string }) => void) => void
-      onUpdateError: (callback: (error: string) => void) => void
-      onUpdateProgress: (callback: (progress: { percent: number }) => void) => void
+      onUpdateAvailable: (callback: (info: { version: string }) => void) => () => void
+      onUpdateDownloaded: (callback: (info: { version: string }) => void) => () => void
+      onUpdateError: (callback: (error: string) => void) => () => void
+      onUpdateProgress: (callback: (progress: { percent: number }) => void) => () => void
     }
   }
 }
@@ -21,7 +21,10 @@ function App() {
   const [encodeInput, setEncodeInput] = useState('')
   const [decodeResult, setDecodeResult] = useState('')
   const [encodeResult, setEncodeResult] = useState('')
-  const [isDark, setIsDark] = useState(true)
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem('urldeco-theme')
+    return saved ? saved === 'dark' : true
+  })
   const [copiedDecode, setCopiedDecode] = useState(false)
   const [copiedEncode, setCopiedEncode] = useState(false)
   const [pastedDecode, setPastedDecode] = useState(false)
@@ -36,42 +39,41 @@ function App() {
   const [appVersion, setAppVersion] = useState('')
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('urldeco-theme')
-    if (savedTheme) {
-      setIsDark(savedTheme === 'dark')
-    }
-  }, [])
-
-  useEffect(() => {
     localStorage.setItem('urldeco-theme', isDark ? 'dark' : 'light')
   }, [isDark])
 
   // Electron update listeners
   useEffect(() => {
-    // Check if running in Electron
-    if (window.electronAPI) {
-      // Get app version
-      window.electronAPI.getVersion().then(setAppVersion)
-      
-      // Listen for update events
-      window.electronAPI.onUpdateAvailable((info) => {
-        setUpdateAvailable(true)
-        setUpdateVersion(info.version)
-      })
-      
-      window.electronAPI.onUpdateDownloaded((info) => {
-        setUpdateDownloaded(true)
-        setUpdateVersion(info.version)
-        setDownloadProgress(100)
-      })
-      
-      window.electronAPI.onUpdateProgress((progress) => {
-        setDownloadProgress(progress.percent)
-      })
-      
-      window.electronAPI.onUpdateError((error) => {
-        console.error('Update error:', error)
-      })
+    if (!window.electronAPI) return
+
+    // Get app version
+    window.electronAPI.getVersion().then(setAppVersion)
+
+    // Listen for update events
+    const cleanupAvailable = window.electronAPI.onUpdateAvailable((info) => {
+      setUpdateAvailable(true)
+      setUpdateVersion(info.version)
+    })
+
+    const cleanupDownloaded = window.electronAPI.onUpdateDownloaded((info) => {
+      setUpdateDownloaded(true)
+      setUpdateVersion(info.version)
+      setDownloadProgress(100)
+    })
+
+    const cleanupProgress = window.electronAPI.onUpdateProgress((progress) => {
+      setDownloadProgress(progress.percent)
+    })
+
+    const cleanupError = window.electronAPI.onUpdateError((error) => {
+      console.error('Update error:', error)
+    })
+
+    return () => {
+      cleanupAvailable()
+      cleanupDownloaded()
+      cleanupProgress()
+      cleanupError()
     }
   }, [])
 
@@ -79,7 +81,7 @@ function App() {
     try {
       const decoded = decodeURIComponent(decodeInput)
       setDecodeResult(decoded)
-    } catch (e) {
+    } catch {
       setDecodeResult('Invalid URL-encoded string')
     }
   }
@@ -88,7 +90,7 @@ function App() {
     try {
       const encoded = encodeURIComponent(encodeInput)
       setEncodeResult(encoded)
-    } catch (e) {
+    } catch {
       setEncodeResult('Invalid input')
     }
   }

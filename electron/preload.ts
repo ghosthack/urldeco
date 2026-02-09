@@ -13,16 +13,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // Event listeners
   onUpdateAvailable: (callback: (info: { version: string }) => void) => {
-    ipcRenderer.on('update-available', (_event, info) => callback(info))
+    const listener = (_event: Electron.IpcRendererEvent, info: { version: string }) => callback(info)
+    ipcRenderer.on('update-available', listener)
+    return () => { ipcRenderer.removeListener('update-available', listener) }
   },
   onUpdateDownloaded: (callback: (info: { version: string }) => void) => {
-    ipcRenderer.on('update-downloaded', (_event, info) => callback(info))
+    const listener = (_event: Electron.IpcRendererEvent, info: { version: string }) => callback(info)
+    ipcRenderer.on('update-downloaded', listener)
+    return () => { ipcRenderer.removeListener('update-downloaded', listener) }
   },
   onUpdateError: (callback: (error: string) => void) => {
-    ipcRenderer.on('update-error', (_event, error) => callback(error))
+    const listener = (_event: Electron.IpcRendererEvent, error: string) => callback(error)
+    ipcRenderer.on('update-error', listener)
+    return () => { ipcRenderer.removeListener('update-error', listener) }
   },
   onUpdateProgress: (callback: (progress: { percent: number }) => void) => {
-    ipcRenderer.on('download-progress', (_event, progress) => callback(progress))
+    const listener = (_event: Electron.IpcRendererEvent, progress: { percent: number }) => callback(progress)
+    ipcRenderer.on('download-progress', listener)
+    return () => { ipcRenderer.removeListener('download-progress', listener) }
   },
 })
 
@@ -34,10 +42,10 @@ declare global {
       getVersion: () => Promise<string>
       checkForUpdates: () => Promise<void>
       quitAndInstall: () => Promise<void>
-      onUpdateAvailable: (callback: (info: { version: string }) => void) => void
-      onUpdateDownloaded: (callback: (info: { version: string }) => void) => void
-      onUpdateError: (callback: (error: string) => void) => void
-      onUpdateProgress: (callback: (progress: { percent: number }) => void) => void
+      onUpdateAvailable: (callback: (info: { version: string }) => void) => () => void
+      onUpdateDownloaded: (callback: (info: { version: string }) => void) => () => void
+      onUpdateError: (callback: (error: string) => void) => () => void
+      onUpdateProgress: (callback: (progress: { percent: number }) => void) => () => void
     }
   }
 }
