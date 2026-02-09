@@ -52,7 +52,17 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: electron-build-${{ matrix.os }}
-          path: release/**
+          path: |
+            release/*.dmg
+            release/*.zip
+            release/*.exe
+            release/*.msi
+            release/*.deb
+            release/*.rpm
+            release/*.AppImage
+            release/*.snap
+            release/*.yml
+            release/*.yaml
           if-no-files-found: ignore
 
   release:
